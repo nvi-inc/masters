@@ -1,0 +1,10 @@
+toml
+paramiko
+openpyxl
+python-docx
+
+[:platform_system == "Windows"]
+pywin32
+
+[:sys_platform == "darwin"]
+appscript

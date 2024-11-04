@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: masters
+Version: 2.4.1
+Summary: Master Schedule generator
+Home-page: https://github.com/nvi-inc/masters.git
+Author: Mario
+Author-email: mario.berube@nviinc.com
+Keywords: vlbi,master,ivs
+Requires-Dist: toml
+Requires-Dist: paramiko
+Requires-Dist: openpyxl
+Requires-Dist: python-docx
+Requires-Dist: pywin32; platform_system == "Windows"
+Requires-Dist: appscript; sys_platform == "darwin"

@@ -1,0 +1,5 @@
+# Fs version 10
+fs-10=["Gs", "Hb", "K2", "Ke", "Kk", "Mc", "Mg", "Wf", "Hh", "Ht", "Nn", "Ns", "Nt", "Oe", "On", "Ow", "Sa", "Ww", "Yj", "Is", "Ag", "Ws", "Ho"]
+
+# Old maximum length for session code
+old_code_constrain=6

@@ -1,0 +1,6 @@
+[console_scripts]
+backup = masters.backup:main
+make_master = masters.make_master:main
+make_notes = masters.notes:main
+make_xlsx = masters.make_xlsx:main
+reqsched = masters.reqsched:main
