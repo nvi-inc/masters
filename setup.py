@@ -4,7 +4,7 @@ setup(
     name='masters',
     packages=['masters'],
     description='Master Schedule generator',
-    version='2.5.0',
+    version='2.5.1',
     url='https://github.com/nvi-inc/masters.git',
     author='Mario',
     author_email='mario.berube@nviinc.com',
@@ -12,7 +12,6 @@ setup(
     install_requires=['toml', 'paramiko', 'openpyxl', 'python-docx',
                       'pywin32 ; platform_system=="Windows"', 'appscript ; sys_platform=="darwin"'],
     include_package_data=False,
-    package_data={'': ['data/fs-10.toml', 'data/types.json']},
     entry_points={
         'console_scripts': [
             'make_master=masters.make_master:main',

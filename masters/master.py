@@ -155,7 +155,7 @@ class XLMaster(Base):
         self.path, self.name, self.ext = path, path.name, path.suffix
         self.year = re.sub(r"\D", ' ', self.name).strip()
 
-        self.type, self.sessions = None, []
+        self.type, self.sessions, self.codes = None, [], set()
 
         self.folder = app.config['folder']
         self.version = {'master': 'UNKNOWN', 'media': 'UNKNOWN'}
@@ -266,6 +266,9 @@ class XLMaster(Base):
         :param stations: List of stations
         :return: Validated session
         """
+        if ses['CODE'].lower() in self.codes:
+            self.add_error(ses , 'duplicate session name')
+        self.codes.add(ses['CODE'].lower())
         for code, constrain in self.constrains.items():
             if len(ses[code]) > constrain:
                 self.add_error(ses, f'{code} {ses[code]} has more than {constrain:d} characters')
@@ -287,9 +290,12 @@ class XLMaster(Base):
         for code, items in self.valid_codes.items():
             if code not in ['STATUS', 'DBC'] and ses[code] not in items:
                 self.add_error(ses, f'invalid {code} code {ses[code]}')
-        # ses['DBC'] = '' if ses['DATE'].year > 2022 else ses['DBC']
-        #if not app.args.v1:
-        ses['EXPERIMENT'] = self.get_session_type(ses['CODE'].strip().upper(), ses['EXPERIMENT'])
+
+        # Extract EXPERIMENT name from master-type-map file when sessions before 2024
+        if ses['DATE'].year < 2024:
+            ses['EXPERIMENT'] = self.get_session_type(ses['CODE'].strip().casefold(), None)
+            if not ses['EXPERIMENT']:
+                self.add_error(ses, f"session {ses['CODE'].strip().casefold()} not found in master-type-map.json file")
         ses['CODE'] = ses['CODE'].lower()
         #elif ses['DOY'] is not None and int(ses['DATE'].strftime('%j')) != int(ses['DOY']):
         #    self.add_error(ses, f'invalid DOY {str(ses["DOY"])}')
@@ -301,7 +307,7 @@ class XLMaster(Base):
                     ses['STATUS'] = 'Wt_med'
                 elif isinstance(ses['DATE'], date) and ses['DATE'] <= self.today:
                     self.add_error(ses, 'STATUS code is blank!', debug=self.debug)
-            elif not isinstance(ses['STATUS'], datetime) and ses['STATUS'] not in self.valid_codes['STATUS']:
+            elif not isinstance(ses['STATUS'], (datetime, date)) and ses['STATUS'] not in self.valid_codes['STATUS']:
                 self.add_error(ses, f'STATUS code {ses["STATUS"]} is not valid', debug=self.debug)
 
         return ses
@@ -478,25 +484,23 @@ class XLMaster(Base):
             return self.write_file('media')
         return None
 
-    @staticmethod
-    def get_fs_10_stations() -> Tuple[int, List[str]]:
+    def get_fs_10_stations(self) -> Tuple[int, List[str]]:
         """
         Read list of stations using FS version 10 or newer
         :return: Maximum name size for old FS version, List of stations
         """
-        with open(resources.files(__name__).joinpath('data/fs-10.toml'), 'rb') as f:
+        with open(Path(self.folder, 'fs-10.toml'), 'rb') as f:
             data = toml.loads(f.read().decode('utf-8'))
         return data['old_code_constrain'], data['fs-10']
 
-    @staticmethod
-    def get_session_type_dict() -> Dict[str, str]:
+    def get_session_type_dict(self) -> Dict[str, str]:
         """
         Read dictionary of sessions with
         :return: Dictionary of sessions with their associate type
         """
-        with open(resources.files(__name__).joinpath('data/types.json'), 'rb') as f:
+        with open(Path(self.folder, 'master-type-map.json'), 'rb') as f:
             data = json.loads(f.read().decode('utf-8'))
-        return {ses_id.upper(): ses_type.upper() for ses_type, sessions in data.items() for ses_id in sessions}
+        return {ses_id.casefold(): ses_type for ses_type, sessions in data.items() for ses_id in sessions}
 
 
 

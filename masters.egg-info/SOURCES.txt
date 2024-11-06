@@ -15,5 +15,3 @@ masters.egg-info/dependency_links.txt
 masters.egg-info/entry_points.txt
 masters.egg-info/requires.txt
 masters.egg-info/top_level.txt
-masters/data/fs-10.toml
-masters/data/types.json

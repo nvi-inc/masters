@@ -2,8 +2,7 @@ import os
 import sys
 import webbrowser
 
-from pathlib import Path
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from tempfile import gettempdir
 from datetime import datetime
 from typing import Optional, Dict, List, Any
@@ -161,7 +160,7 @@ def get_master_file(extension: str = 'xlsx') -> str:
     :return:
     """
     for code in ['master', 'intensives']:
-        if hasattr(app.args, code):
+        if getattr(app.args, code):
             return Path(app.config['folder'], get_file_name(code, extension, str(app.args.year)))
 
 
