@@ -56,6 +56,12 @@ class MasterText:
         minutes = float(h) if h else 0
         return minutes + (float(m) if m else 0)
 
+    @staticmethod
+    def status(text: str) -> str or datetime:
+        if text.isdigit():
+            return datetime.strptime(text, '%Y%m%d')
+        return 'Wt_med' if text == 'Wt_tape' else text
+
     def process_master(self) -> Path:
         """
         Read text file and generate xlsx file
@@ -74,7 +80,7 @@ class MasterText:
             sheet[f'E{row}'] = datetime.strptime(ses[4], '%H:%M').time()
             sheet[f'F{row}'] = self.hm2m(ses[5])
             sheet[f'AK{row}'], sheet[f'AL{row}'] = ses[7], ses[8]
-            sheet[f'AM{row}'] = datetime.strptime(ses[9], '%Y%m%d') if ses[9].isdigit() else ses[9]
+            sheet[f'AM{row}'] = self.status(ses[9])
             sheet[f'AO{row}'], sheet[f'AP{row}'] = ses[10], ses[11]
             scheduled, _, removed = ses[6].partition(' -')
             for col in skd:  # Empty field for each stations
@@ -111,7 +117,7 @@ class MasterText:
             sheet[f'I{row}'] = datetime.strptime(ses[4], '%H:%M').time()
             sheet[f'K{row}'] = self.hm2m(ses[5])
             sheet[f'X{row}'], sheet[f'Z{row}'] = ses[7], ses[8]
-            sheet[f'AB{row}'] = datetime.strptime(ses[9], '%Y%m%d') if ses[9].isdigit() else ses[9]
+            sheet[f'AB{row}'] = self.status(ses[9])
             sheet[f'AF{row}'], sheet[f'AH{row}'] = ses[10], ses[11]
 
             scheduled, _, removed = ses[6].partition(' -')

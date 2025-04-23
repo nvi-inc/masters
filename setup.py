@@ -4,7 +4,7 @@ setup(
     name='masters',
     packages=['masters'],
     description='Master Schedule generator',
-    version='2.5.1',
+    version='2.5.4',
     url='https://github.com/nvi-inc/masters.git',
     author='Mario',
     author_email='mario.berube@nviinc.com',

@@ -1,12 +1,9 @@
 import tempfile
 import re
-import os
 import json
 
-from importlib import resources
-
 from operator import itemgetter
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timezone, timedelta
 from collections import OrderedDict
 from pathlib import Path
 from string import Formatter
@@ -60,11 +57,11 @@ class MasterFile(Formatter):
         """
         version = version[code] if code in version else version['master']
         header = app.config[code]['header'].format(version=version, year=year,
-                                                   updated=datetime.now().strftime('%B %d, %Y'),
+                                                   updated=datetime.now(tz=timezone.utc).strftime('%B %d, %Y'),
                                                    initials=app.config['initials'])
         # Find the longest line to generate separator
         line_length = max([len(line) for line in header.splitlines()])
-        separator = '-' * line_length + '\n'
+        separator = f"{'-' * line_length}\n"
         # Build format for this formatter
         columns = OrderedDict(**app.config['master']['format'])
         for key, value in app.config[code]['format'].items():
@@ -192,7 +189,7 @@ class XLMaster(Base):
         with open(path) as file:
             header, content = file.readline(), file.read()
         # Test version
-        if not (version := re.search(r'## (.*)', header)):
+        if not (version := re.search(r'(## .*)', header)):
             self.exit(error=f'{path} is not a valid master-format file')
         self.version['master'] = version.group(1)
         # Load accepted data code for specific fields
@@ -255,8 +252,9 @@ class XLMaster(Base):
         :param n: Size of string in station value
         :return: Formatted information ready for master text file
         """
+
         groups = ''.join([sta[:n] for sta in stations]).split()
-        return ' -'.join(groups)
+        return f" -{groups[0]}" if stations[0].strip() == '' else ' -'.join(groups)
 
     # Validate each session
     def validate_session(self, ses: Dict[str, Any], stations: List[str]) -> Dict[str, Any]:
@@ -312,6 +310,14 @@ class XLMaster(Base):
 
         return ses
 
+    @staticmethod
+    def read_header(row):
+        fields = OrderedDict()
+        for cell in row:
+            if not isinstance(cell, EmptyCell) and isinstance(cell.value, str):
+                fields[cell.column] = cell.value.strip()
+        return fields
+
     def read_master(self, sheet: Worksheet) -> bool:
         """
         Read master sessions stored in Excel worksheet
@@ -320,14 +326,7 @@ class XLMaster(Base):
         """
         # Read fields from first row
         rows = sheet.iter_rows()
-        row = next(rows)
-        for cell in row:
-            if isinstance(cell, EmptyCell):
-                continue
-            if not isinstance(cell.value, str):
-                break
-            self.fields[cell.column] = cell.value
-
+        self.fields = self.read_header(next(rows))
         if 'DELAY' not in self.fields.values():
             self.fields[1000] = 'DELAY'
 
@@ -360,6 +359,14 @@ class XLMaster(Base):
 
             if 'DELAY' not in ses:
                 ses['DELAY'] = 0
+            if self.year < '2003':
+                ses['DELAY'] = ''
+            else:  # Compute delay from status or today.
+                end = ses['START'].astimezone(timezone.utc) + timedelta(seconds=ses['DUR'])
+                if isinstance(ses['STATUS'], (datetime, date)):
+                    ses['DELAY'] = (ses['STATUS'].astimezone(timezone.utc) - end).days
+                else:
+                    ses['DELAY'] = min((datetime.now(tz=timezone.utc) - end).days, 9999)
 
             sessions.append(ses)
 
@@ -373,18 +380,11 @@ class XLMaster(Base):
         :param sheet: Active sheet
         :return: Success
         """
-        fields = OrderedDict()
         rows = sheet.iter_rows()
-        row = next(rows)
-        for cell in row:
-            if isinstance(cell, EmptyCell):
-                continue
-            if isinstance(cell.value, str):
-                last = cell.value.strip()
-            fields[cell.column] = last
-
+        # Read fields from first row
+        fields = self.read_header(next(rows))
         # Read data
-        sessions = []
+        sessions, default_field = [], None
         for row in rows:
             ses, master = {}, []
             for cell in row:
@@ -394,24 +394,23 @@ class XLMaster(Base):
                 if 'row' not in ses:
                     ses['row'] = cell.row
 
-                field = fields.get(cell.column, None)
-                if field:
+                if field := fields.get(cell.column, default_field):
                     if field == 'STATIONS':
                         sta, _ = self.validate_station_info(ses, cell, field)
                         master.append(sta)
-                    else:
+                        default_field = 'STATIONS'
+                    elif field:
                         ses[field] = cell.value
+                        default_field = None
 
             if not ses.get('DATE', None):
                 continue
 
             # Validate this session
             ses = self.validate_session(ses, master)
-
             # Format station codes
             ses['master'] = self.format_list(master, 2)
-            ses['DELAY'] = 0
-            ses['MK4NUM'] = ''
+            ses['DELAY'], ses['MK4NUM'] = 0, ''
 
             sessions.append(ses)
 
