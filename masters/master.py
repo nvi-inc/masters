@@ -314,7 +314,9 @@ class XLMaster(Base):
     def read_header(row):
         fields = OrderedDict()
         for cell in row:
-            if not isinstance(cell, EmptyCell) and isinstance(cell.value, str):
+            if not isinstance(cell.value, str):
+                break
+            if not isinstance(cell, EmptyCell):
                 fields[cell.column] = cell.value.strip()
         return fields
 
@@ -335,7 +337,6 @@ class XLMaster(Base):
         for row in rows:
             ses, master, media = {}, [], []
             for cell in row:
-                # Check if first cell is empty
                 if isinstance(cell, EmptyCell):
                     continue
                 if 'row' not in ses:
@@ -488,6 +489,7 @@ class XLMaster(Base):
         Read list of stations using FS version 10 or newer
         :return: Maximum name size for old FS version, List of stations
         """
+        print(f"fs-10 {Path(self.folder, 'fs-10.toml')}")
         with open(Path(self.folder, 'fs-10.toml'), 'rb') as f:
             data = toml.loads(f.read().decode('utf-8'))
         return data['old_code_constrain'], data['fs-10']
@@ -497,6 +499,7 @@ class XLMaster(Base):
         Read dictionary of sessions with
         :return: Dictionary of sessions with their associate type
         """
+        print(f"master-type-map {Path(self.folder, 'master-type-map.json')}")
         with open(Path(self.folder, 'master-type-map.json'), 'rb') as f:
             data = json.loads(f.read().decode('utf-8'))
         return {ses_id.casefold(): ses_type for ses_type, sessions in data.items() for ses_id in sessions}
