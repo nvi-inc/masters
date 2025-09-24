@@ -314,10 +314,10 @@ class XLMaster(Base):
     def read_header(row):
         fields = OrderedDict()
         for cell in row:
-            if not isinstance(cell.value, str):
-                break
-            if not isinstance(cell, EmptyCell):
-                fields[cell.column] = cell.value.strip()
+            if not isinstance(cell, EmptyCell) and isinstance(cell.value, str):
+                fields[cell.column] = txt = cell.value.strip()
+                if txt.upper() in ('SUBM', 'MK4NUM'):
+                    break
         return fields
 
     def read_master(self, sheet: Worksheet) -> bool:
