@@ -233,7 +233,11 @@ class XLMaster(Base):
         :return: Station code and value of cell
         """
         has_media = self.type == 'master'
-        if not cell.value or not cell.value.strip():
+        try:
+            if not cell.value or not cell.value.strip():
+                return '  ', '    '
+        except AttributeError:
+            print(cell.row, cell.column)
             return '  ', '    '
         value = cell.value  #.replace('-', '').strip()
         sta = value[0:2]
@@ -253,7 +257,10 @@ class XLMaster(Base):
         :return: Formatted information ready for master text file
         """
 
-        groups = ''.join([sta[:n] for sta in stations]).split()
+        def clean(item):
+            return ''.join(sorted(list(re.findall('.' * n, item.strip()))))
+
+        groups = [clean(grp) for grp in ''.join([sta[:n] for sta in stations]).split()]
         return f" -{groups[0]}" if stations[0].strip() == '' else ' -'.join(groups)
 
     # Validate each session
@@ -316,8 +323,8 @@ class XLMaster(Base):
         for cell in row:
             if not isinstance(cell, EmptyCell) and isinstance(cell.value, str):
                 fields[cell.column] = txt = cell.value.strip()
-                if txt.upper() in ('SUBM', 'MK4NUM'):
-                    break
+                #if txt.upper() in ('SUBM', 'MK4NUM'):
+                #    break
         return fields
 
     def read_master(self, sheet: Worksheet) -> bool:

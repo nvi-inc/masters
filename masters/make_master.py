@@ -28,7 +28,12 @@ def main():
         if master.process():
             # This option (-t) added to create a txt file without notes.
             if app.args.text_only:
-                master.open_file(master.make_master())
+                print(f := master.make_master())
+                master.open_file(f)
+                if app.args.master:
+                    print(f := master.make_media())
+                    master.open_file(f)
+
                 return
 
             # Make note text file from docx file
